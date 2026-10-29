@@ -48,18 +48,11 @@
         </div>
     </div>
 
-    <!-- Khu vực xe lăn bánh cùng đôi tình nhân -->
-    <div id="car" class="car-assembly">
-        <!-- Hai bạn ngồi trong xe -->
-        <div class="couple-in-car">
-            <img class="EmBe" src="emiuu.png" alt="Em Diệu" title="Em Hoài" />
-            <img class="tui" src="tui.png" alt="Tùng" title="Tùng" />
-        </div>
-
-        <!-- Khung xe -->
-        <img class="cars" src="xe.png" alt="Chiếc xe tình yêu" />
-
-        <!-- Hai bánh xe quay tròn như cũ -->
+    <!-- Khu vực xe lăn bánh cùng đôi tình nhân như cũ -->
+    <div id="car">
+        <img class="cars" src="xe.png" alt="cars" />
+        <img class="tui" src="tui.png" alt="Tùng" title="Tùng" />
+        <img class="EmBe" src="emiuu.png" alt="Em Diệu" title="Em Hoài" />
         <div class="wheel1">
             <div class="shadowSocks"></div>
         </div>
@@ -67,13 +60,6 @@
             <div class="shadowSocks"></div>
         </div>
         <div class="back"></div>
-
-        <!-- Khói hình trái tim bay ra từ ống xả -->
-        <div class="exhaust-hearts">
-            <span class="ex-heart">💕</span>
-            <span class="ex-heart">💖</span>
-            <span class="ex-heart">💗</span>
-        </div>
     </div>
 
     <!-- Sân khấu chính: Bầu trời, Con đường, Cảnh vật & Hộp quà -->
@@ -118,10 +104,9 @@
 
         <!-- Hộp quà tương tác -->
         <div id="merrywrap" class="merrywrap">
-            <div class="gift-hint" id="gift-hint">Nhấp vào đây mở thư nè 💌</div>
             <div class="giftbox">
                 <div class="cover">
-                    <div class="ribbon-bow"></div>
+                    <div></div>
                 </div>
                 <div class="box"></div>
             </div>
@@ -174,12 +159,9 @@
         </div>
     </div>
 
-    <!-- Nút mở lại thư nếu đã thu nhỏ -->
     <button id="reopen-letter-btn" class="reopen-letter-btn" title="Mở lại bức thư">
         💌 Xem lại bức thư
     </button>
-
-    <!-- Floating Music Controller (Trình điều khiển nhạc nổi góc màn hình) -->
     <div id="music-controller" class="music-controller">
         <div class="vinyl-disc" id="vinyl-disc" title="Phát/Dừng nhạc">
             <div class="vinyl-center"></div>
@@ -195,7 +177,7 @@
                 <span id="play-icon">⏸️</span>
             </button>
             <button id="change-music-btn" class="music-btn" title="Đổi bài nhạc khác (YouTube / File)">
-                <span>🎵 Đổi nhạc</span>
+                <span>Đổi nhạc</span>
             </button>
         </div>
     </div>
@@ -208,7 +190,7 @@
             </div>
             <div class="modal-body">
                 <p class="modal-desc">
-                    Hệ thống tự động phát âm thanh từ YouTube. Bạn có thể dán bất kỳ link bài hát YouTube nào hoặc chọn
+                    Hệ thống tự động phát âm thanh từ YouTube. Hoài có thể dán bất kỳ link bài hát YouTube nào hoặc chọn
                     bài gợi ý bên dưới!
                 </p>
 
@@ -222,29 +204,29 @@
                     <div class="suggested-label">Gợi ý bài hát lãng mạn:</div>
                     <div class="tracks-list">
                         <button class="track-chip" data-id="s3R7_qjGj80" data-title="Đôi Mươi - Hoàng Dũng">
-                            💖 Đôi Mươi (Hoàng Dũng)
+                            Đôi Mươi (Hoàng Dũng)
                         </button>
                         <button class="track-chip" data-id="duW14e1WqW8" data-title="Ánh Nắng Của Anh - Đức Phúc">
-                            ☀️ Ánh Nắng Của Anh (Đức Phúc)
+                            Ánh Nắng Của Anh (Đức Phúc)
                         </button>
                         <button class="track-chip" data-id="Z1bcE_88e7A" data-title="Nàng Thơ - Hoàng Dũng">
-                            🌸 Nàng Thơ (Hoàng Dũng)
+                            Nàng Thơ (Hoàng Dũng)
                         </button>
                         <button class="track-chip" data-id="hW0s_qUjQ-g" data-title="Chuyện Đôi Ta - Emcee L ft. Muộii">
-                            ✨ Chuyện Đôi Ta (Emcee L)
+                            Chuyện Đôi Ta (Emcee L)
                         </button>
                         <button class="track-chip" data-id="ba3b_mBqOqI" data-title="Cứ Chill Thôi - Chillies">
-                            🍃 Cứ Chill Thôi (Chillies)
+                            Cứ Chill Thôi (Chillies)
                         </button>
                         <button class="track-chip chip-fallback" data-id="LOCAL" data-title="Nhạc Gốc (doimuoi.mp3)">
-                            📁 File Nhạc Sẵn (doimuoi.mp3)
+                            File Nhạc Sẵn (doimuoi.mp3)
                         </button>
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
                 <button id="modal-cancel-btn" class="modal-btn secondary">Hủy</button>
-                <button id="modal-apply-btn" class="modal-btn primary">Áp Dụng & Phát Nhạc ✨</button>
+                <button id="modal-apply-btn" class="modal-btn primary">Phát Nhạc</button>
             </div>
         </div>
     </div>
