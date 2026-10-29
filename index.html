@@ -1,104 +1,255 @@
 <!DOCTYPE html>
-<html>
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>I LOVE YOU <3 </title>
-        <link rel="stylesheet" href="style.css">
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Playpen+Sans:wght@600&display=swap" rel="stylesheet">
-        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-<link rel="manifest" href="/site.webmanifest">
-    </head>
-    <body>
-      <audio id ="audio">
-        <source src ="doimuoi.mp3"></source>
-      </audio>
-      <div class ="loading">
-        <div class="progress-bar">
-          <div class="progress"></div>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>I LOVE YOU - Gửi Em Diệu Của Anh ❤️</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Dancing+Script:wght@600;700&family=Playpen+Sans:wght@500;600;700&family=Quicksand:wght@500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Icons & Favicon -->
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+    <link rel="manifest" href="site.webmanifest">
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <canvas id="heartCanvas"></canvas>
+    <audio id="audio" loop preload="auto">
+        <source src="doimuoi.mp3" type="audio/mp3">
+    </audio>
+
+
+    <div id="yt-player-container" aria-hidden="true"></div>
+    <div id="start-screen" class="start-screen">
+        <div class="welcome-box">
+            <div class="welcome-heart-icon">💖</div>
+            <h1 class="welcome-title">Gửi Vợ yêu Của Anh</h1>
+            <p class="welcome-subtitle">Anh có một điều bất ngờ nho nhỏ muốn dành riêng cho Hoài...</p>
+            <button id="button" class="bubbly-button">
+                <span>Mở Quà Cho Em Nè! 🎁</span>
+            </button>
+
+            <div class="loading" id="loading-container">
+                <div class="loading-label">Đang nạp yêu thương... <span id="loading-pct">0%</span> 💕</div>
+                <div class="progress-bar">
+                    <div class="progress" id="progress"></div>
+                </div>
+            </div>
         </div>
-      </div>
-  
-    <button onclick="start()" class="bubbly-button" id="button">Click me!</button>
-    <div id ="car">
-      <img class ="cars" src="xe.png" alt ="cars" />
-      <img class ="tui" src="tui.png" alt ="tui"/>
-      <img class ="EmBe" src="emiuu.png"alt ="embe"/>
-      <div class = "wheel1">
-        <div class ="shadowSocks"></div>
-      </div>
-      <div class ="wheel2">
-        <div class ="shadowSocks"></div>
-      </div>
-      <div class="back"></div>
     </div>
-    <div id="fullPage" class="night">
-    <div class="cloud"></div>
-    <div class="cloud small"></div>
-    <div class ="cloud between"></div>
-    <div class ="road">
-      <div class ="road-line"></div>
-      <div class ="grass"></div>
+
+    <!-- Khu vực xe lăn bánh cùng đôi tình nhân -->
+    <div id="car" class="car-assembly">
+        <!-- Hai bạn ngồi trong xe -->
+        <div class="couple-in-car">
+            <img class="EmBe" src="emiuu.png" alt="Em Diệu" title="Em Diệu" />
+            <img class="tui" src="tui.png" alt="Tùng" title="Tùng" />
+        </div>
+
+        <!-- Khung xe -->
+        <img class="cars" src="xe.png" alt="Chiếc xe tình yêu" />
+
+        <!-- Hai bánh xe quay tròn -->
+        <div class="wheel wheel-front">
+            <div class="wheel-rim"></div>
+        </div>
+        <div class="wheel wheel-back">
+            <div class="wheel-rim"></div>
+        </div>
+
+        <!-- Khói hình trái tim bay ra từ ống xả -->
+        <div class="exhaust-hearts">
+            <span class="ex-heart">💕</span>
+            <span class="ex-heart">💖</span>
+            <span class="ex-heart">💗</span>
+        </div>
     </div>
-    <div class="section">
-    <div class="time-circle">
-      <div class="sun"></div>
-      <div class="moon">
-          <div></div>
-          <div></div>
-          <div></div>
-      </div>
-      <div class="stars">
-          <div></div>
-          <div></div>
-          <div></div>
-          <div></div>
-          <div></div>
-          <div></div>
-          <div></div>
-          <div></div>
-          <div></div>
-          <div></div>
-          <div></div>
-          <div></div>
-          </div>
-      </div>
-      <div class="water"></div>
-  </div>
-  <div id="merrywrap" class="merrywrap">
-    <div class="giftbox">
-      <div class="cover">
-        <div></div>
-      </div>
-      <div class="box"></div>
+
+    <!-- Sân khấu chính: Bầu trời, Con đường, Cảnh vật & Hộp quà -->
+    <div id="fullPage" class="main-page night">
+        <!-- Mây trôi lãng mạn -->
+        <div class="cloud cloud-1"></div>
+        <div class="cloud cloud-2 small"></div>
+        <div class="cloud cloud-3 between"></div>
+
+        <!-- Con đường và thảm cỏ -->
+        <div class="road">
+            <div class="road-line"></div>
+            <div class="grass"></div>
+        </div>
+
+        <!-- Chu kỳ Mặt Trời / Mặt Trăng & Sao -->
+        <div class="section">
+            <div class="time-circle">
+                <div class="sun"></div>
+                <div class="moon">
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                </div>
+                <div class="stars">
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                </div>
+            </div>
+            <div class="water"></div>
+        </div>
+
+        <!-- Hộp quà tương tác -->
+        <div id="merrywrap" class="merrywrap">
+            <div class="gift-hint">Nhấp vào đây mở thư nè 💌</div>
+            <div class="giftbox">
+                <div class="cover">
+                    <div class="ribbon-bow"></div>
+                </div>
+                <div class="box"></div>
+            </div>
+        </div>
     </div>
-  </div>
-</div>
-<div class ="letter-paper" id ="letter-paper">
-  <div class="heart">
-    <div class="left"></div> 
-    <div class="right"></div> 
-  </div>
-  <div class="heart1">
-    <div class="left1"></div> 
-    <div class="right1"></div> 
-  </div>
-  <div class="text-container">
-    <span class="reg-text" id="text">Anh yêu vợ </span>
-    <span  align="center"class="letter" id ="letter">20
-      <span>-</span>
-      <span>10</span> -->
-      <span class ="hearts"> &#x2665</span> -->
-  </span>
 
-  </div>
-</div>
+    <!-- Bức Thư Tình (Love Letter) -->
+    <div class="letter-paper" id="letter-paper">
+        <button class="letter-close-btn" id="letter-toggle-btn" title="Thu nhỏ bức thư">✖</button>
 
+        <div class="letter-seal">
+            <div class="seal-heart">❤️</div>
+        </div>
 
-    <script src="./script.js"></script>
-</body>      
-</html>   
+        <div class="letter-badge">Anh tặng vợ</div>
+
+        <div class="text-container">
+            <h2 class="letter-salutation" id="letter-title">Thu Hoài ơi</h2>
+
+            <div class="letter-body" id="letter-content">
+                <p class="letter-p" id="text1">
+                    Chị à, lần đầu gặp chị, em đã phải lòng chị ngay lập tức. Ánh mắt của chị, nụ cười của chị và cả
+                    giọng nói của chị đã khiến em không thể quên được.
+                </p>
+                <p class="letter-p" id="text2">
+                    Từ ngày đó, em đã tìm mọi cách để làm quen với chị, và em đã rất vui khi chị đồng ý làm bạn với em.
+                </p>
+                <p class="letter-p" id="text3">
+                    Cảm ơn chị đã ở bên em, cùng em cười hềnh hệch qua những ngày tháng xì chét mọe nhất<span
+                        class="heart-inline">♥</span>
+                </p>
+                <p class="letter-p highlight-p" id="text4">
+                    Để cảm ơn chị, mình cùng đồng hành cùng nhau đến cuối chặng đường khi em còn ở đây nha
+                </p>
+            </div>
+
+            <div class="letter-signature" id="letter-signature">
+                <span class="sign-role">Em cảm ơn nha, em yêu chị</span>
+                <span class="sign-name">200 con chóa</span>
+            </div>
+
+            <div class="letter-actions">
+                <button class="action-btn heart-btn" id="send-hearts-btn">
+                    <span>Thả Tim cho tui</span>
+                </button>
+                <button class="action-btn toggle-btn" id="minimize-letter-btn">
+                    <span>Ngắm cảnh tiếp đi bro</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Nút mở lại thư nếu đã thu nhỏ -->
+    <button id="reopen-letter-btn" class="reopen-letter-btn" title="Mở lại bức thư">
+        💌 Xem lại bức thư
+    </button>
+
+    <!-- Floating Music Controller (Trình điều khiển nhạc nổi góc màn hình) -->
+    <div id="music-controller" class="music-controller">
+        <div class="vinyl-disc" id="vinyl-disc" title="Phát/Dừng nhạc">
+            <div class="vinyl-center"></div>
+        </div>
+        <div class="music-info">
+            <span class="music-title" id="music-title">Đôi Mươi - Hoàng Dũng</span>
+            <div class="sound-wave" id="sound-wave">
+                <span></span><span></span><span></span><span></span>
+            </div>
+        </div>
+        <div class="music-actions">
+            <button id="music-play-toggle" class="music-btn" title="Bật / Dừng nhạc">
+                <span id="play-icon">⏸️</span>
+            </button>
+            <button id="change-music-btn" class="music-btn" title="Đổi bài nhạc khác (YouTube / File)">
+                <span>🎵 Đổi nhạc</span>
+            </button>
+        </div>
+    </div>
+
+    <div id="music-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🎵 Cài Đặt Nhạc Nền Lãng Mạn</h3>
+                <button id="modal-close-btn" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-desc">
+                    Hệ thống tự động phát âm thanh từ YouTube. Bạn có thể dán bất kỳ link bài hát YouTube nào hoặc chọn
+                    bài gợi ý bên dưới!
+                </p>
+
+                <div class="input-group">
+                    <label for="yt-url-input">Dán Link YouTube hoặc Video ID:</label>
+                    <input type="text" id="yt-url-input"
+                        placeholder="Ví dụ: https://www.youtube.com/watch?v=... hoặc ID" />
+                </div>
+
+                <div class="suggested-tracks">
+                    <div class="suggested-label">Gợi ý bài hát lãng mạn:</div>
+                    <div class="tracks-list">
+                        <button class="track-chip" data-id="s3R7_qjGj80" data-title="Đôi Mươi - Hoàng Dũng">
+                            💖 Đôi Mươi (Hoàng Dũng)
+                        </button>
+                        <button class="track-chip" data-id="duW14e1WqW8" data-title="Ánh Nắng Của Anh - Đức Phúc">
+                            ☀️ Ánh Nắng Của Anh (Đức Phúc)
+                        </button>
+                        <button class="track-chip" data-id="Z1bcE_88e7A" data-title="Nàng Thơ - Hoàng Dũng">
+                            🌸 Nàng Thơ (Hoàng Dũng)
+                        </button>
+                        <button class="track-chip" data-id="hW0s_qUjQ-g" data-title="Chuyện Đôi Ta - Emcee L ft. Muộii">
+                            ✨ Chuyện Đôi Ta (Emcee L)
+                        </button>
+                        <button class="track-chip" data-id="ba3b_mBqOqI" data-title="Cứ Chill Thôi - Chillies">
+                            🍃 Cứ Chill Thôi (Chillies)
+                        </button>
+                        <button class="track-chip chip-fallback" data-id="LOCAL" data-title="Nhạc Gốc (doimuoi.mp3)">
+                            📁 File Nhạc Sẵn (doimuoi.mp3)
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="modal-cancel-btn" class="modal-btn secondary">Hủy</button>
+                <button id="modal-apply-btn" class="modal-btn primary">Áp Dụng & Phát Nhạc ✨</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main JavaScript Logic -->
+    <script src="script.js"></script>
+</body>
+
+</html>
