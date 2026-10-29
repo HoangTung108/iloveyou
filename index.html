@@ -205,18 +205,34 @@
             </div>
             <div class="modal-body">
                 <p class="modal-desc">
-                    Hệ thống tự động phát âm thanh từ YouTube. Hoài có thể dán bất kỳ link bài hát YouTube nào hoặc chọn
-                    bài gợi ý bên dưới!
+                    Tìm bài hát yêu thích hoặc dán link YouTube bên dưới 🎶
                 </p>
 
+                <!-- Thanh tìm kiếm bài hát -->
+                <div class="search-section">
+                    <div class="search-bar-wrap">
+                        <input type="text" id="song-search-input"
+                            placeholder="🔍  Nhập tên bài hát, ca sĩ..." autocomplete="off" />
+                        <button id="song-search-btn" class="search-exec-btn" title="Tìm kiếm">
+                            <span id="search-btn-icon">🔍</span>
+                        </button>
+                    </div>
+                    <!-- Kết quả search cuộn được -->
+                    <div id="search-results-box" class="search-results-box hidden">
+                        <div id="search-results-list" class="search-results-list"></div>
+                    </div>
+                </div>
+
+                <!-- Phân cách -->
+                <div class="modal-divider"><span>hoặc dán link thủ công</span></div>
+
                 <div class="input-group">
-                    <label for="yt-url-input">Dán Link YouTube hoặc Video ID:</label>
                     <input type="text" id="yt-url-input"
-                        placeholder="Ví dụ: https://www.youtube.com/watch?v=... hoặc ID" />
+                        placeholder="https://www.youtube.com/watch?v=..." />
                 </div>
 
                 <div class="suggested-tracks">
-                    <div class="suggested-label">Gợi ý bài hát lãng mạn:</div>
+                    <div class="suggested-label">Gợi ý nhanh:</div>
                     <div class="tracks-list">
                         <button class="track-chip" data-id="s3R7_qjGj80" data-title="Đôi Mươi - Hoàng Dũng">
                             Đôi Mươi (Hoàng Dũng)

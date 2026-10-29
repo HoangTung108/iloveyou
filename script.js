@@ -41,6 +41,13 @@ const modalApplyBtn = document.getElementById('modal-apply-btn');
 const ytUrlInput = document.getElementById('yt-url-input');
 const trackChips = document.querySelectorAll('.track-chip');
 
+// Search nhạc
+const songSearchInput = document.getElementById('song-search-input');
+const songSearchBtn = document.getElementById('song-search-btn');
+const searchBtnIcon = document.getElementById('search-btn-icon');
+const searchResultsBox = document.getElementById('search-results-box');
+const searchResultsList = document.getElementById('search-results-list');
+
 // Audio Fallback (file MP3)
 const audioFallback = document.getElementById('audio');
 
@@ -77,14 +84,22 @@ window.onYouTubeIframeAPIReady = function() {
     initYouTubePlayer(activeVideoId);
 };
 
-function initYouTubePlayer(videoId) {
+function initYouTubePlayer(videoId, autoplayOnReady = false) {
     try {
+        // Nếu đã có player, chỉ load video mới
+        if (ytPlayer && typeof ytPlayer.loadVideoById === 'function') {
+            ytPlayer.loadVideoById({ videoId: videoId, startSeconds: 0 });
+            if (autoplayOnReady) {
+                isPlaying = true;
+            }
+            return;
+        }
         ytPlayer = new YT.Player('yt-player-container', {
             height: '1',
             width: '1',
             videoId: videoId,
             playerVars: {
-                autoplay: 0,
+                autoplay: autoplayOnReady ? 1 : 0,
                 controls: 0,
                 disablekb: 1,
                 fs: 0,
@@ -107,12 +122,22 @@ function initYouTubePlayer(videoId) {
 
 function onPlayerReady(event) {
     isYtReady = true;
+    event.target.setVolume(80);
     if (isPlaying && currentSource === 'YOUTUBE') {
-        event.target.playVideo();
+        try {
+            event.target.playVideo();
+        } catch (e) {}
     }
 }
 
 function onPlayerStateChange(event) {
+    // Khi video đang buffer hoặc vừa load xong (BUFFERING=3, CUED=5) → phát nếu isPlaying=true
+    if (event.data === YT.PlayerState.BUFFERING || event.data === YT.PlayerState.CUED) {
+        if (isPlaying && currentSource === 'YOUTUBE') {
+            try { event.target.playVideo(); } catch (e) {}
+        }
+        return;
+    }
     if (event.data === YT.PlayerState.PLAYING) {
         setMusicUIPlaying(true);
     } else if (event.data === YT.PlayerState.PAUSED || event.data === YT.PlayerState.ENDED) {
@@ -219,16 +244,28 @@ function switchTrack(videoId, title) {
     } else {
         currentSource = 'YOUTUBE';
         audioFallback.pause();
-        if (ytPlayer && ytPlayer.loadVideoById) {
-            ytPlayer.loadVideoById({
-                videoId: videoId,
-                startSeconds: 0
-            });
-            ytPlayer.playVideo();
-            setMusicUIPlaying(true);
+
+        if (ytPlayer && typeof ytPlayer.loadVideoById === 'function') {
+            // Cueue video trước, sau đó play để tránh bị autoplay-policy block
+            try {
+                ytPlayer.loadVideoById({ videoId: videoId, startSeconds: 0 });
+                // playVideo sẽ được gọi trong onPlayerStateChange khi trạng thái = BUFFERING/CUED
+                setMusicUIPlaying(true);
+                isPlaying = true;
+            } catch (e) {
+                console.warn('loadVideoById thất bại:', e);
+                fallbackToLocalAudio();
+            }
         } else {
-            initYouTubePlayer(videoId);
+            // YouTube player chưa sẵn sàng — khởi tạo mới
+            if (ytPlayer) {
+                // Hủy player cũ nếu có
+                try { ytPlayer.destroy(); } catch (e) {}
+                ytPlayer = null;
+            }
+            isYtReady = false;
             isPlaying = true;
+            initYouTubePlayer(videoId, true);
         }
     }
 }
@@ -540,8 +577,166 @@ if (modalApplyBtn) {
                 chosenTitle = chip.getAttribute('data-title');
             }
         });
+        // Tiêu đề từ kết quả search có thể được lưu trong dataset
+        if (ytUrlInput.dataset.searchTitle) {
+            chosenTitle = ytUrlInput.dataset.searchTitle;
+            delete ytUrlInput.dataset.searchTitle;
+        }
 
         switchTrack(extractedId, chosenTitle);
         closeModal();
+    });
+}
+
+// ========================================================
+// 8. SEARCH BÀI HÁT TRỰC TIẾP (PIPED API)
+// ========================================================
+const PIPED_INSTANCES = [
+    'https://pipedapi.kavin.rocks',
+    'https://api.piped.projectsegfau.lt',
+    'https://pipedapi.tokhmi.xyz'
+];
+
+let searchAbortCtrl = null;
+
+function formatDuration(seconds) {
+    if (!seconds || seconds < 0) return '';
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return m + ':' + String(s).padStart(2, '0');
+}
+
+function setSearchLoading(loading) {
+    if (!searchBtnIcon) return;
+    if (loading) {
+        searchBtnIcon.innerHTML = '<div class="spinner"></div>';
+        if (songSearchBtn) songSearchBtn.disabled = true;
+    } else {
+        searchBtnIcon.textContent = '🔍';
+        if (songSearchBtn) songSearchBtn.disabled = false;
+    }
+}
+
+function showSearchStatus(msg, isError = false) {
+    if (!searchResultsList || !searchResultsBox) return;
+    searchResultsBox.classList.remove('hidden');
+    searchResultsList.innerHTML = `<div class="search-status ${isError ? 'error' : ''}">${msg}</div>`;
+}
+
+function renderSearchResults(items) {
+    if (!searchResultsList || !searchResultsBox) return;
+    searchResultsBox.classList.remove('hidden');
+
+    if (!items || items.length === 0) {
+        showSearchStatus('Không tìm thấy bài nào 😢 Thử từ khóa khác nhé!');
+        return;
+    }
+
+    searchResultsList.innerHTML = '';
+    items.slice(0, 20).forEach(item => {
+        // Lấy video ID từ url dạng /watch?v=VIDEO_ID
+        const urlMatch = (item.url || '').match(/[?&]v=([a-zA-Z0-9_-]{11})/);
+        const videoId = urlMatch ? urlMatch[1] : null;
+        if (!videoId) return;
+
+        const title = item.title || 'Không có tiêu đề';
+        const channel = item.uploaderName || '';
+        const duration = formatDuration(item.duration);
+        const thumb = item.thumbnail || `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`;
+
+        const el = document.createElement('div');
+        el.className = 'search-result-item';
+        el.innerHTML = `
+            <img class="result-thumb" src="${thumb}" alt="" loading="lazy"
+                onerror="this.src='https://i.ytimg.com/vi/${videoId}/mqdefault.jpg'"/>
+            <div class="result-info">
+                <div class="result-title" title="${title}">${title}</div>
+                <div class="result-channel">${channel}</div>
+            </div>
+            ${duration ? `<span class="result-duration">${duration}</span>` : ''}
+        `;
+
+        el.addEventListener('click', () => {
+            // Bỏ selected khỏi các item khác
+            searchResultsList.querySelectorAll('.search-result-item').forEach(i => i.classList.remove('selected'));
+            el.classList.add('selected');
+
+            // Điền vào input URL và lưu tiêu đề
+            if (ytUrlInput) {
+                ytUrlInput.value = 'https://www.youtube.com/watch?v=' + videoId;
+                ytUrlInput.dataset.searchTitle = title;
+            }
+            // Bỏ active chip gợi ý
+            trackChips.forEach(c => c.classList.remove('active'));
+        });
+
+        searchResultsList.appendChild(el);
+    });
+}
+
+async function doSearch(query) {
+    if (!query.trim()) return;
+
+    // Hủy request cũ nếu có
+    if (searchAbortCtrl) searchAbortCtrl.abort();
+    searchAbortCtrl = new AbortController();
+    const signal = searchAbortCtrl.signal;
+
+    setSearchLoading(true);
+    showSearchStatus('⏳ Đang tìm kiếm...');
+
+    let found = false;
+    for (const instance of PIPED_INSTANCES) {
+        try {
+            const url = `${instance}/search?q=${encodeURIComponent(query)}&filter=music_songs`;
+            const res = await fetch(url, { signal });
+            if (!res.ok) continue;
+            const data = await res.json();
+            const items = (data.items || []).filter(i => i.type === 'stream' || i.url);
+            renderSearchResults(items);
+            found = true;
+            break;
+        } catch (err) {
+            if (err.name === 'AbortError') {
+                setSearchLoading(false);
+                return;
+            }
+            // Thử instance tiếp theo
+            continue;
+        }
+    }
+
+    if (!found) {
+        showSearchStatus('⚠️ Không kết nối được máy chủ tìm kiếm. Hãy dán link YouTube thủ công nhé!', true);
+    }
+
+    setSearchLoading(false);
+}
+
+if (songSearchBtn) {
+    songSearchBtn.addEventListener('click', () => {
+        const q = songSearchInput ? songSearchInput.value.trim() : '';
+        if (q) doSearch(q);
+    });
+}
+
+if (songSearchInput) {
+    songSearchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const q = songSearchInput.value.trim();
+            if (q) doSearch(q);
+        }
+    });
+}
+
+// Khi mở modal, reset search results
+if (changeMusicBtn) {
+    const originalChangeMusicListener = changeMusicBtn.onclick;
+    changeMusicBtn.addEventListener('click', () => {
+        if (searchResultsBox) searchResultsBox.classList.add('hidden');
+        if (searchResultsList) searchResultsList.innerHTML = '';
+        if (songSearchInput) songSearchInput.value = '';
+        if (ytUrlInput) delete ytUrlInput.dataset.searchTitle;
     });
 }

@@ -1344,7 +1344,205 @@ html, body {
   font-size: 14px;
   color: #666;
   line-height: 1.5;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
+}
+
+/* ── Search Section ── */
+.search-section {
+  margin-bottom: 14px;
+}
+
+.search-bar-wrap {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.search-bar-wrap input {
+  flex: 1;
+  padding: 11px 16px;
+  border: 2px solid #ffccd9;
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+  background: #fff8fb;
+}
+
+.search-bar-wrap input:focus {
+  border-color: #ff4081;
+  background: #fff;
+}
+
+.search-exec-btn {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, #ff4081, #ff6b8b);
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 3px 10px rgba(255,64,129,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.search-exec-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(255,64,129,0.45);
+}
+
+.search-exec-btn:active {
+  transform: scale(0.95);
+}
+
+.search-exec-btn .spinner {
+  width: 18px;
+  height: 18px;
+  border: 2.5px solid rgba(255,255,255,0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Hộp kết quả cuộn */
+.search-results-box {
+  margin-top: 10px;
+  border: 2px solid #ffccd9;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(255,64,129,0.12);
+}
+
+.search-results-box.hidden {
+  display: none;
+}
+
+.search-results-list {
+  max-height: 240px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #ffb3c6 transparent;
+}
+
+.search-results-list::-webkit-scrollbar {
+  width: 5px;
+}
+
+.search-results-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.search-results-list::-webkit-scrollbar-thumb {
+  background: #ffb3c6;
+  border-radius: 10px;
+}
+
+/* Từng item kết quả */
+.search-result-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid #ffeef4;
+  transition: background 0.15s;
+}
+
+.search-result-item:last-child {
+  border-bottom: none;
+}
+
+.search-result-item:hover {
+  background: #fff0f6;
+}
+
+.search-result-item.selected {
+  background: #ffe0ec;
+}
+
+.result-thumb {
+  width: 60px;
+  height: 42px;
+  object-fit: cover;
+  border-radius: 8px;
+  flex-shrink: 0;
+  background: #f5c6d8;
+}
+
+.result-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.result-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #2d1b2e;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.result-channel {
+  font-size: 11px;
+  color: #888;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.result-duration {
+  font-size: 11px;
+  color: #ff4081;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* Trạng thái loading / rỗng / lỗi */
+.search-status {
+  padding: 20px;
+  text-align: center;
+  font-size: 13px;
+  color: #aaa;
+}
+
+.search-status.error {
+  color: #e53935;
+}
+
+/* Phân cách */
+.modal-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0 12px;
+  color: #ccc;
+  font-size: 12px;
+}
+
+.modal-divider::before,
+.modal-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #f0dfe6;
+}
+
+.modal-divider span {
+  white-space: nowrap;
 }
 
 .input-group {
