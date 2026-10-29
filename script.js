@@ -589,14 +589,22 @@ if (modalApplyBtn) {
 }
 
 // ========================================================
-// 8. SEARCH BÀI HÁT TRỰC TIẾP (PIPED API)
+// 8. SEARCH BÀI HÁT TRỰC TIẾP (PARALLEL RACE + CACHE)
 // ========================================================
-const PIPED_INSTANCES = [
-    'https://pipedapi.kavin.rocks',
-    'https://api.piped.projectsegfau.lt',
-    'https://pipedapi.tokhmi.xyz'
+
+// Danh sách instance — sẽ race song song, lấy cái nào phản hồi trước
+const SEARCH_INSTANCES = [
+    { type: 'piped',     base: 'https://pipedapi.kavin.rocks' },
+    { type: 'piped',     base: 'https://api.piped.projectsegfau.lt' },
+    { type: 'piped',     base: 'https://pipedapi.tokhmi.xyz' },
+    { type: 'piped',     base: 'https://pipedapi.adminforge.de' },
+    { type: 'invidious', base: 'https://invidious.nerdvpn.de' },
+    { type: 'invidious', base: 'https://yt.artemislena.eu' },
 ];
 
+const SEARCH_TIMEOUT_MS = 6000;
+const searchCache = new Map(); // query → items[]
+let searchDebounceTimer = null;
 let searchAbortCtrl = null;
 
 function formatDuration(seconds) {
@@ -623,6 +631,22 @@ function showSearchStatus(msg, isError = false) {
     searchResultsList.innerHTML = `<div class="search-status ${isError ? 'error' : ''}">${msg}</div>`;
 }
 
+function showSearchSkeleton() {
+    if (!searchResultsList || !searchResultsBox) return;
+    searchResultsBox.classList.remove('hidden');
+    let html = '';
+    for (let i = 0; i < 5; i++) {
+        html += `<div class="search-result-item skeleton-item">
+            <div class="skeleton-thumb"></div>
+            <div class="result-info">
+                <div class="skeleton-line sk-title"></div>
+                <div class="skeleton-line sk-sub"></div>
+            </div>
+        </div>`;
+    }
+    searchResultsList.innerHTML = html;
+}
+
 function renderSearchResults(items) {
     if (!searchResultsList || !searchResultsBox) return;
     searchResultsBox.classList.remove('hidden');
@@ -633,22 +657,29 @@ function renderSearchResults(items) {
     }
 
     searchResultsList.innerHTML = '';
-    items.slice(0, 20).forEach(item => {
-        // Lấy video ID từ url dạng /watch?v=VIDEO_ID
-        const urlMatch = (item.url || '').match(/[?&]v=([a-zA-Z0-9_-]{11})/);
-        const videoId = urlMatch ? urlMatch[1] : null;
-        if (!videoId) return;
+    const fragment = document.createDocumentFragment();
 
-        const title = item.title || 'Không có tiêu đề';
-        const channel = item.uploaderName || '';
-        const duration = formatDuration(item.duration);
-        const thumb = item.thumbnail || `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`;
+    items.slice(0, 20).forEach(item => {
+        // Lấy video ID — Piped dùng /watch?v=ID, Invidious dùng videoId field
+        let videoId = item.videoId || null;
+        if (!videoId) {
+            const urlMatch = (item.url || '').match(/[?&v=\/]([a-zA-Z0-9_-]{11})(?:[?&]|$)/);
+            if (urlMatch) videoId = urlMatch[1];
+        }
+        if (!videoId || videoId.length !== 11) return;
+
+        const title = (item.title || 'Không có tiêu đề').replace(/</g, '&lt;');
+        const channel = (item.uploaderName || item.author || '').replace(/</g, '&lt;');
+        const duration = formatDuration(item.duration || item.lengthSeconds);
+        // Ưu tiên thumbnail trực tiếp từ ytimg (nhanh hơn)
+        const thumb = `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`;
 
         const el = document.createElement('div');
         el.className = 'search-result-item';
+        el.dataset.id = videoId;
+        el.dataset.title = title;
         el.innerHTML = `
-            <img class="result-thumb" src="${thumb}" alt="" loading="lazy"
-                onerror="this.src='https://i.ytimg.com/vi/${videoId}/mqdefault.jpg'"/>
+            <img class="result-thumb" src="${thumb}" alt="" loading="lazy"/>
             <div class="result-info">
                 <div class="result-title" title="${title}">${title}</div>
                 <div class="result-channel">${channel}</div>
@@ -657,82 +688,134 @@ function renderSearchResults(items) {
         `;
 
         el.addEventListener('click', () => {
-            // Bỏ selected khỏi các item khác
             searchResultsList.querySelectorAll('.search-result-item').forEach(i => i.classList.remove('selected'));
             el.classList.add('selected');
-
-            // Điền vào input URL và lưu tiêu đề
             if (ytUrlInput) {
                 ytUrlInput.value = 'https://www.youtube.com/watch?v=' + videoId;
                 ytUrlInput.dataset.searchTitle = title;
             }
-            // Bỏ active chip gợi ý
             trackChips.forEach(c => c.classList.remove('active'));
         });
 
-        searchResultsList.appendChild(el);
+        fragment.appendChild(el);
     });
+
+    searchResultsList.appendChild(fragment);
+}
+
+// Fetch 1 instance với timeout tự động
+function fetchInstance(instance, query, signal) {
+    const ctrl = new AbortController();
+    // Gắn signal ngoài vào
+    signal.addEventListener('abort', () => ctrl.abort());
+
+    const timeoutId = setTimeout(() => ctrl.abort(), SEARCH_TIMEOUT_MS);
+
+    let url;
+    if (instance.type === 'piped') {
+        url = `${instance.base}/search?q=${encodeURIComponent(query)}&filter=music_songs`;
+    } else {
+        // Invidious
+        url = `${instance.base}/api/v1/search?q=${encodeURIComponent(query)}&type=video&fields=videoId,title,author,lengthSeconds`;
+    }
+
+    return fetch(url, { signal: ctrl.signal })
+        .then(res => {
+            clearTimeout(timeoutId);
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            return res.json();
+        })
+        .then(data => {
+            clearTimeout(timeoutId);
+            // Chuẩn hóa kết quả từ cả 2 loại API về cùng 1 format
+            let items = [];
+            if (instance.type === 'piped') {
+                items = (data.items || []).filter(i => i.url);
+            } else {
+                // Invidious trả về array trực tiếp
+                items = Array.isArray(data) ? data : [];
+            }
+            if (items.length === 0) throw new Error('empty');
+            return items;
+        })
+        .catch(err => {
+            clearTimeout(timeoutId);
+            throw err;
+        });
 }
 
 async function doSearch(query) {
-    if (!query.trim()) return;
+    query = query.trim();
+    if (!query) return;
 
-    // Hủy request cũ nếu có
+    // Kiểm tra cache
+    if (searchCache.has(query)) {
+        renderSearchResults(searchCache.get(query));
+        setSearchLoading(false);
+        return;
+    }
+
+    // Hủy request cũ
     if (searchAbortCtrl) searchAbortCtrl.abort();
     searchAbortCtrl = new AbortController();
     const signal = searchAbortCtrl.signal;
 
     setSearchLoading(true);
-    showSearchStatus('⏳ Đang tìm kiếm...');
+    showSearchSkeleton();
 
-    let found = false;
-    for (const instance of PIPED_INSTANCES) {
-        try {
-            const url = `${instance}/search?q=${encodeURIComponent(query)}&filter=music_songs`;
-            const res = await fetch(url, { signal });
-            if (!res.ok) continue;
-            const data = await res.json();
-            const items = (data.items || []).filter(i => i.type === 'stream' || i.url);
-            renderSearchResults(items);
-            found = true;
-            break;
-        } catch (err) {
-            if (err.name === 'AbortError') {
-                setSearchLoading(false);
-                return;
-            }
-            // Thử instance tiếp theo
-            continue;
+    try {
+        // Race tất cả instances song song — lấy response đầu tiên thành công
+        const items = await Promise.any(
+            SEARCH_INSTANCES.map(inst => fetchInstance(inst, query, signal))
+        );
+
+        if (signal.aborted) return;
+
+        // Lưu cache (tối đa 15 queries)
+        if (searchCache.size >= 15) {
+            const firstKey = searchCache.keys().next().value;
+            searchCache.delete(firstKey);
         }
-    }
+        searchCache.set(query, items);
 
-    if (!found) {
-        showSearchStatus('⚠️ Không kết nối được máy chủ tìm kiếm. Hãy dán link YouTube thủ công nhé!', true);
+        renderSearchResults(items);
+    } catch (err) {
+        if (signal.aborted || (err && err.name === 'AbortError')) return;
+        showSearchStatus('⚠️ Không kết nối được máy chủ tìm kiếm.<br>Hãy dán link YouTube thủ công nhé!', true);
     }
 
     setSearchLoading(false);
 }
 
-if (songSearchBtn) {
-    songSearchBtn.addEventListener('click', () => {
-        const q = songSearchInput ? songSearchInput.value.trim() : '';
-        if (q) doSearch(q);
-    });
-}
-
+// Debounce auto-search khi gõ (350ms sau khi dừng gõ)
 if (songSearchInput) {
+    songSearchInput.addEventListener('input', () => {
+        clearTimeout(searchDebounceTimer);
+        const q = songSearchInput.value.trim();
+        if (q.length < 2) return;
+        searchDebounceTimer = setTimeout(() => doSearch(q), 350);
+    });
+
     songSearchInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
             e.preventDefault();
+            clearTimeout(searchDebounceTimer);
             const q = songSearchInput.value.trim();
             if (q) doSearch(q);
         }
     });
 }
 
+if (songSearchBtn) {
+    songSearchBtn.addEventListener('click', () => {
+        clearTimeout(searchDebounceTimer);
+        const q = songSearchInput ? songSearchInput.value.trim() : '';
+        if (q) doSearch(q);
+    });
+}
+
 // Khi mở modal, reset search results
 if (changeMusicBtn) {
-    const originalChangeMusicListener = changeMusicBtn.onclick;
     changeMusicBtn.addEventListener('click', () => {
         if (searchResultsBox) searchResultsBox.classList.add('hidden');
         if (searchResultsList) searchResultsList.innerHTML = '';
