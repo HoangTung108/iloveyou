@@ -398,6 +398,12 @@ function openGiftBox() {
         giftbox.removeEventListener('click', openGiftBox);
         merrywrap.className = 'merrywrap step-1';
         
+        // Ẩn ngay lập tức nút / chữ mở quà khi bắt đầu mở hộp quà
+        const hint = document.getElementById('gift-hint') || merrywrap.querySelector('.gift-hint');
+        if (hint) {
+            hint.style.display = 'none';
+        }
+
         // Nổ tim tại vị trí hộp quà
         const rect = giftbox.getBoundingClientRect();
         spawnBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, 25);
@@ -408,6 +414,7 @@ function openGiftBox() {
             
             setTimeout(() => {
                 merrywrap.className = 'merrywrap step-3';
+                merrywrap.style.display = 'none'; // Ẩn hoàn toàn hộp quà khi thư đã mở
                 showLetterPaper();
             }, 800);
         }, 600);
