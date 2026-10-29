@@ -48,13 +48,13 @@ const searchBtnIcon = document.getElementById('search-btn-icon');
 const searchResultsBox = document.getElementById('search-results-box');
 const searchResultsList = document.getElementById('search-results-list');
 
-// Audio Fallback (file MP3)
+// Audio Fallback (file MP3) - dùng cho cả Piped stream lẫn file local
 const audioFallback = document.getElementById('audio');
 
 let ytPlayer = null;
 let isYtReady = false;
 let isPlaying = false;
-let currentSource = 'YOUTUBE'; // 'YOUTUBE' hoặc 'LOCAL'
+let currentSource = 'PIPED'; // 'PIPED' | 'YOUTUBE' | 'LOCAL'
 let activeVideoId = localStorage.getItem('love_bgm_yt_id') || DEFAULT_YOUTUBE_ID;
 let activeSongTitle = localStorage.getItem('love_bgm_title') || DEFAULT_SONG_TITLE;
 
@@ -68,8 +68,89 @@ if (musicTitle) {
 }
 
 // ========================================================
-// 3. TÍCH HỢP YOUTUBE IFRAME PLAYER API (AUDIO-ONLY)
+// 3. ENGINE NHẠC — PIPED AUDIO STREAM (KHÔNG QUẢNG CÁO)
+//    Fallback → YouTube IFrame → MP3 local
 // ========================================================
+
+const PIPED_STREAM_APIS = [
+    'https://pipedapi.kavin.rocks',
+    'https://api.piped.projectsegfau.lt',
+    'https://pipedapi.tokhmi.xyz',
+    'https://pipedapi.adminforge.de',
+];
+const STREAM_TIMEOUT_MS = 8000;
+
+// Lấy audio stream URL + title từ Piped (race song song tất cả instance)
+function fetchPipedStream(videoId) {
+    const controllers = [];
+
+    const fetchers = PIPED_STREAM_APIS.map(base => {
+        const ctrl = new AbortController();
+        controllers.push(ctrl);
+        const tid = setTimeout(() => ctrl.abort(), STREAM_TIMEOUT_MS);
+
+        return fetch(`${base}/streams/${videoId}`, { signal: ctrl.signal })
+            .then(r => { clearTimeout(tid); if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+            .then(data => {
+                clearTimeout(tid);
+                const streams = (data.audioStreams || [])
+                    .filter(s => s.url && s.mimeType && s.mimeType.startsWith('audio'))
+                    .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
+                if (!streams.length) throw new Error('no audio stream');
+                // Lấy stream chất lượng cao nhưng không quá nặng (ưu 128k)
+                const best = streams.find(s => (s.bitrate || 0) <= 160000) || streams[0];
+                return {
+                    streamUrl: best.url,
+                    title: data.title || null,
+                    mimeType: best.mimeType || 'audio/webm',
+                };
+            })
+            .catch(e => { clearTimeout(tid); throw e; });
+    });
+
+    // Khi 1 cái thành công, hủy tất cả còn lại
+    return Promise.any(fetchers).finally(() => {
+        controllers.forEach(c => { try { c.abort(); } catch(_) {} });
+    });
+}
+
+// Cập nhật title trên UI và lưu localStorage
+function updateMusicTitle(title) {
+    if (!title) return;
+    activeSongTitle = title;
+    if (musicTitle) musicTitle.textContent = title;
+    localStorage.setItem('love_bgm_title', title);
+}
+
+// ── Phát qua Piped audio stream ──
+async function playViaPiped(videoId, knownTitle) {
+    if (knownTitle) updateMusicTitle(knownTitle);
+    try {
+        const result = await fetchPipedStream(videoId);
+
+        // Cập nhật title thật từ API
+        if (result.title) updateMusicTitle(result.title);
+        localStorage.setItem('love_bgm_title', activeSongTitle);
+
+        // Dừng YouTube IFrame nếu đang chạy
+        if (ytPlayer && ytPlayer.pauseVideo) { try { ytPlayer.pauseVideo(); } catch(_) {} }
+
+        // Set src và phát
+        audioFallback.src = result.streamUrl;
+        audioFallback.loop = true;
+        audioFallback.load();
+        await audioFallback.play();
+        currentSource = 'PIPED';
+        setMusicUIPlaying(true);
+        return true;
+    } catch (err) {
+        if (err && err.name === 'AbortError') return false;
+        console.warn('[Piped] Không lấy được stream, thử YouTube IFrame:', err);
+        return false;
+    }
+}
+
+// ── YouTube IFrame (fallback khi Piped thất bại) ──
 // Tải script API của YouTube bất đồng bộ
 (function loadYouTubeApi() {
     const tag = document.createElement('script');
@@ -78,44 +159,38 @@ if (musicTitle) {
     firstScript.parentNode.insertBefore(tag, firstScript);
 })();
 
-// Hàm callback tự động được gọi khi YouTube API sẵn sàng
 window.onYouTubeIframeAPIReady = function() {
-    if (currentSource === 'LOCAL') return;
-    initYouTubePlayer(activeVideoId);
+    // Chỉ khởi tạo nếu Piped chưa chạy thành công
+    if (currentSource !== 'PIPED' && activeVideoId !== 'LOCAL') {
+        initYouTubePlayer(activeVideoId);
+    }
 };
 
 function initYouTubePlayer(videoId, autoplayOnReady = false) {
     try {
-        // Nếu đã có player, chỉ load video mới
         if (ytPlayer && typeof ytPlayer.loadVideoById === 'function') {
-            ytPlayer.loadVideoById({ videoId: videoId, startSeconds: 0 });
-            if (autoplayOnReady) {
-                isPlaying = true;
-            }
+            ytPlayer.loadVideoById({ videoId, startSeconds: 0 });
+            if (autoplayOnReady) isPlaying = true;
             return;
         }
         ytPlayer = new YT.Player('yt-player-container', {
-            height: '1',
-            width: '1',
-            videoId: videoId,
+            height: '1', width: '1',
+            videoId,
             playerVars: {
                 autoplay: autoplayOnReady ? 1 : 0,
-                controls: 0,
-                disablekb: 1,
-                fs: 0,
-                loop: 1,
-                playlist: videoId, // Cần thiết để lặp lại bài hát trên YouTube
-                modestbranding: 1,
-                playsinline: 1
+                controls: 0, disablekb: 1, fs: 0,
+                loop: 1, playlist: videoId,
+                modestbranding: 1, playsinline: 1,
+                rel: 0, iv_load_policy: 3,
             },
             events: {
                 onReady: onPlayerReady,
                 onStateChange: onPlayerStateChange,
-                onError: onPlayerError
+                onError: onPlayerError,
             }
         });
     } catch (e) {
-        console.warn('Lỗi khởi tạo YouTube Player, chuyển sang nhạc MP3:', e);
+        console.warn('Lỗi YouTube Player, chuyển sang MP3:', e);
         fallbackToLocalAudio();
     }
 }
@@ -124,84 +199,68 @@ function onPlayerReady(event) {
     isYtReady = true;
     event.target.setVolume(80);
     if (isPlaying && currentSource === 'YOUTUBE') {
-        try {
-            event.target.playVideo();
-        } catch (e) {}
+        try { event.target.playVideo(); } catch(_) {}
     }
 }
 
 function onPlayerStateChange(event) {
-    // Khi video đang buffer hoặc vừa load xong (BUFFERING=3, CUED=5) → phát nếu isPlaying=true
     if (event.data === YT.PlayerState.BUFFERING || event.data === YT.PlayerState.CUED) {
         if (isPlaying && currentSource === 'YOUTUBE') {
-            try { event.target.playVideo(); } catch (e) {}
+            try { event.target.playVideo(); } catch(_) {}
         }
         return;
     }
     if (event.data === YT.PlayerState.PLAYING) {
         setMusicUIPlaying(true);
-    } else if (event.data === YT.PlayerState.PAUSED || event.data === YT.PlayerState.ENDED) {
-        if (event.data === YT.PlayerState.ENDED) {
-            // Tự động lặp lại nếu hết bài
-            if (ytPlayer && ytPlayer.playVideo) ytPlayer.playVideo();
-        } else {
-            setMusicUIPlaying(false);
-        }
+    } else if (event.data === YT.PlayerState.PAUSED) {
+        setMusicUIPlaying(false);
+    } else if (event.data === YT.PlayerState.ENDED) {
+        if (ytPlayer && ytPlayer.playVideo) ytPlayer.playVideo();
     }
 }
 
 function onPlayerError(event) {
-    console.warn('Lỗi phát YouTube (mã lỗi ' + event.data + '), chuyển sang nhạc MP3 dự phòng!');
+    console.warn('[YouTube IFrame] Lỗi ' + event.data + ', chuyển sang MP3 dự phòng!');
     fallbackToLocalAudio();
 }
 
 function fallbackToLocalAudio() {
     currentSource = 'LOCAL';
-    if (ytPlayer && ytPlayer.pauseVideo) {
-        try { ytPlayer.pauseVideo(); } catch (e) {}
-    }
-    audioFallback.play().then(() => {
-        setMusicUIPlaying(true);
-        musicTitle.textContent = 'Đôi Mươi (MP3)';
-    }).catch(e => {
-        console.log('Chờ tương tác người dùng để phát âm thanh:', e);
-    });
+    if (ytPlayer && ytPlayer.pauseVideo) { try { ytPlayer.pauseVideo(); } catch(_) {} }
+    // Khôi phục file MP3 gốc
+    audioFallback.removeAttribute('src');
+    const source = audioFallback.querySelector('source');
+    if (source) source.src = 'doimuoi.mp3';
+    audioFallback.load();
+    audioFallback.play()
+        .then(() => {
+            setMusicUIPlaying(true);
+            updateMusicTitle('Đôi Mươi - Hoàng Dũng');
+        })
+        .catch(e => console.log('Cần tương tác người dùng:', e));
 }
 
-// Bật / Dừng nhạc
+// ── Điều khiển phát/dừng chung ──
 function playMusic() {
     isPlaying = true;
     if (currentSource === 'YOUTUBE' && ytPlayer && isYtReady && ytPlayer.playVideo) {
-        try {
-            ytPlayer.playVideo();
-            setMusicUIPlaying(true);
-        } catch (e) {
-            fallbackToLocalAudio();
-        }
+        try { ytPlayer.playVideo(); setMusicUIPlaying(true); } catch(e) { fallbackToLocalAudio(); }
     } else {
-        audioFallback.play().then(() => {
-            setMusicUIPlaying(true);
-        }).catch(() => {});
+        audioFallback.play().then(() => setMusicUIPlaying(true)).catch(() => {});
     }
 }
 
 function pauseMusic() {
     isPlaying = false;
     if (currentSource === 'YOUTUBE' && ytPlayer && ytPlayer.pauseVideo) {
-        try { ytPlayer.pauseVideo(); } catch (e) {}
+        try { ytPlayer.pauseVideo(); } catch(_) {}
     }
-    if (audioFallback) {
-        audioFallback.pause();
-    }
+    audioFallback.pause();
     setMusicUIPlaying(false);
 }
 
 function toggleMusic() {
-    if (isPlaying) {
-        pauseMusic();
-    } else {
-        playMusic();
-    }
+    if (isPlaying) pauseMusic(); else playMusic();
 }
 
 function setMusicUIPlaying(playing) {
@@ -225,48 +284,47 @@ function extractYouTubeId(url) {
     return match ? match[1] : null;
 }
 
-// Thay đổi bài hát đang phát
-function switchTrack(videoId, title) {
+// ── Switch track: Piped → YouTube IFrame → Local MP3 ──
+async function switchTrack(videoId, title) {
     activeVideoId = videoId;
-    activeSongTitle = title || 'Nhạc Tình Yêu 💕';
-    musicTitle.textContent = activeSongTitle;
-
+    // Hiển thị title đã biết ngay (sẽ cập nhật lại bằng title thật từ API)
+    updateMusicTitle(title || 'Đang tải...');
     localStorage.setItem('love_bgm_yt_id', videoId);
-    localStorage.setItem('love_bgm_title', activeSongTitle);
+    isPlaying = true;
 
     if (videoId === 'LOCAL') {
         currentSource = 'LOCAL';
-        if (ytPlayer && ytPlayer.pauseVideo) {
-            try { ytPlayer.pauseVideo(); } catch (e) {}
-        }
+        if (ytPlayer && ytPlayer.pauseVideo) { try { ytPlayer.pauseVideo(); } catch(_) {} }
+        audioFallback.removeAttribute('src');
+        const source = audioFallback.querySelector('source');
+        if (source) source.src = 'doimuoi.mp3';
+        audioFallback.load();
         audioFallback.currentTime = 0;
-        audioFallback.play().then(() => setMusicUIPlaying(true)).catch(() => {});
-    } else {
-        currentSource = 'YOUTUBE';
-        audioFallback.pause();
+        audioFallback.play().then(() => {
+            setMusicUIPlaying(true);
+            updateMusicTitle('Đôi Mươi - Hoàng Dũng (MP3)');
+        }).catch(() => {});
+        return;
+    }
 
-        if (ytPlayer && typeof ytPlayer.loadVideoById === 'function') {
-            // Cueue video trước, sau đó play để tránh bị autoplay-policy block
-            try {
-                ytPlayer.loadVideoById({ videoId: videoId, startSeconds: 0 });
-                // playVideo sẽ được gọi trong onPlayerStateChange khi trạng thái = BUFFERING/CUED
-                setMusicUIPlaying(true);
-                isPlaying = true;
-            } catch (e) {
-                console.warn('loadVideoById thất bại:', e);
-                fallbackToLocalAudio();
-            }
-        } else {
-            // YouTube player chưa sẵn sàng — khởi tạo mới
-            if (ytPlayer) {
-                // Hủy player cũ nếu có
-                try { ytPlayer.destroy(); } catch (e) {}
-                ytPlayer = null;
-            }
-            isYtReady = false;
-            isPlaying = true;
-            initYouTubePlayer(videoId, true);
+    // Thử Piped stream trước
+    const pipedOk = await playViaPiped(videoId, title);
+    if (pipedOk) return;
+
+    // Fallback: YouTube IFrame
+    currentSource = 'YOUTUBE';
+    audioFallback.pause();
+    if (ytPlayer && typeof ytPlayer.loadVideoById === 'function') {
+        try {
+            ytPlayer.loadVideoById({ videoId, startSeconds: 0 });
+            setMusicUIPlaying(true);
+        } catch(e) {
+            fallbackToLocalAudio();
         }
+    } else {
+        if (ytPlayer) { try { ytPlayer.destroy(); } catch(_) {} ytPlayer = null; }
+        isYtReady = false;
+        initYouTubePlayer(videoId, true);
     }
 }
 
@@ -382,8 +440,16 @@ startBtn.addEventListener('click', () => {
     if (isStarted) return;
     isStarted = true;
 
-    // Phát nhạc ngay khi có thao tác người dùng (đảm bảo autoplay trình duyệt chấp nhận)
-    playMusic();
+    // Khởi động nhạc khi có tương tác người dùng
+    if (activeVideoId === 'LOCAL') {
+        playMusic();
+    } else {
+        // Thử Piped stream trước, không cần chờ — chạy nền
+        isPlaying = true;
+        playViaPiped(activeVideoId, activeSongTitle).then(ok => {
+            if (!ok) playMusic(); // fallback YouTube IFrame / MP3
+        });
+    }
 
     startBtn.style.display = 'none';
     loadingContainer.classList.add('active');
