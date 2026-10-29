@@ -17,7 +17,7 @@ const loadingPct = document.getElementById('loading-pct');
 const fullPage = document.getElementById('fullPage');
 const car = document.getElementById('car');
 const merrywrap = document.getElementById('merrywrap');
-const giftbox = merrywrap ? merrywrap.querySelector('.giftbox') : null;
+const giftbox = document.getElementById('giftbox') || (merrywrap ? (merrywrap.querySelector('.new-giftbox') || merrywrap.querySelector('.giftbox')) : null);
 
 const letterPaper = document.getElementById('letter-paper');
 const letterCloseBtn = document.getElementById('letter-toggle-btn');
@@ -398,10 +398,10 @@ function openGiftBox() {
         giftbox.removeEventListener('click', openGiftBox);
         merrywrap.className = 'merrywrap step-1';
         
-        // Ẩn ngay lập tức nút / chữ mở quà khi bắt đầu mở hộp quà
-        const hint = document.getElementById('gift-hint') || merrywrap.querySelector('.gift-hint');
-        if (hint) {
-            hint.style.display = 'none';
+        // Ẩn ngay lập tức huy hiệu mở quà
+        const badge = document.getElementById('gift-badge') || (merrywrap ? merrywrap.querySelector('.gift-badge') : null);
+        if (badge) {
+            badge.style.display = 'none';
         }
 
         // Nổ tim tại vị trí hộp quà
@@ -410,14 +410,14 @@ function openGiftBox() {
 
         setTimeout(() => {
             merrywrap.className = 'merrywrap step-2';
-            spawnBurst(rect.left + rect.width / 2, rect.top, 30);
+            spawnBurst(rect.left + rect.width / 2, rect.top, 35);
             
             setTimeout(() => {
                 merrywrap.className = 'merrywrap step-3';
                 merrywrap.style.display = 'none'; // Ẩn hoàn toàn hộp quà khi thư đã mở
                 showLetterPaper();
-            }, 800);
-        }, 600);
+            }, 750);
+        }, 550);
     }
 }
 

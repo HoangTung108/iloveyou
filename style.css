@@ -662,7 +662,7 @@ html, body {
 }
 
 /* ========================================================
-   5. HỘP QUÀ TƯƠNG TÁC (GIFTBOX NHƯ CŨ)
+   5. HỘP QUÀ TƯƠNG TÁC MỚI (NEW MODERN GIFTBOX)
    ======================================================== */
 .merrywrap {
   position: absolute;
@@ -670,162 +670,238 @@ html, body {
   left: 0px;
   bottom: 0px;
   top: 0px;
-  z-index: 10;
+  z-index: 15;
 }
 
-.giftbox {
+.new-giftbox {
   position: absolute;
-  width: 20%;
-  height: 26%;
+  width: clamp(120px, 15vw, 160px);
+  height: clamp(120px, 15vw, 160px);
   left: 50%;
-  margin-left: -150px;
-  bottom: 40px;
-  z-index: 10;
+  transform: translateX(-50%);
+  margin-left: 0;
+  bottom: clamp(35px, 9vh, 90px);
+  z-index: 15;
   cursor: pointer;
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  user-select: none;
 }
 
-.giftbox > div {
-  background: #fc8ad1;
+.new-giftbox:hover {
+  transform: translateX(-50%) scale(1.08) translateY(-4px);
+}
+
+/* Vầng sáng lung linh xung quanh hộp quà */
+.gift-aura {
   position: absolute;
+  width: 140%;
+  height: 140%;
+  top: -20%;
+  left: -20%;
+  background: radial-gradient(circle, rgba(255, 64, 129, 0.45) 0%, rgba(255, 215, 0, 0.25) 45%, transparent 70%);
+  border-radius: 50%;
+  animation: auraPulse 2.5s infinite ease-in-out;
+  pointer-events: none;
+  z-index: 1;
 }
 
-.giftbox > div:after, .giftbox > div:before {
+@keyframes auraPulse {
+  0%, 100% { transform: scale(0.9); opacity: 0.6; }
+  50% { transform: scale(1.15); opacity: 0.95; }
+}
+
+/* Tia sáng & tim bay xung quanh */
+.gift-sparks {
   position: absolute;
-  content: "";
-  top: 0;
-}
-
-.giftbox:after {
-  position: absolute;
-  color: #fff;
-  width: 100%;
-  content: "Click Me!";
-  left: 0;
-  bottom: 0;
-  font-size: 24px;
-  text-align: center;
-  transform: rotate(-20deg);
-  transform-origin: 0 0;
-}
-
-.giftbox:hover {
-  cursor: pointer;
-  transform: scale(1.05);
-}
-
-.giftbox .cover {
-  width: 100%;
-  top: 0;
-  left: 0;
-  height: 25%;
+  inset: 0;
+  pointer-events: none;
   z-index: 2;
 }
 
-.giftbox .cover:before {
+.gift-sparks .spark {
   position: absolute;
-  height: 100%;
+  font-size: 16px;
+  animation: sparkFloat 3s infinite ease-in-out;
+}
+
+.gift-sparks .s1 { top: -15px; left: 10%; animation-delay: 0s; }
+.gift-sparks .s2 { top: 20%; right: -15px; animation-delay: 1s; font-size: 14px; }
+.gift-sparks .s3 { bottom: 10%; left: -15px; animation-delay: 2s; font-size: 15px; }
+
+@keyframes sparkFloat {
+  0%, 100% { transform: translateY(0) scale(0.8); opacity: 0.4; }
+  50% { transform: translateY(-10px) scale(1.2); opacity: 1; }
+}
+
+/* Huy hiệu mời mở quà */
+.gift-badge {
+  position: absolute;
+  top: -46px;
   left: 50%;
-  width: 50px;
   transform: translateX(-50%);
-  background: #fdc56d;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  color: #d81159;
+  border: 2px solid #ff80ab;
+  box-shadow: 0 8px 24px rgba(255, 42, 122, 0.35);
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 700;
+  font-size: clamp(12px, 2.5vw, 14px);
+  padding: 6px 14px;
+  border-radius: 20px;
+  white-space: nowrap;
+  animation: badgeFloat 2s infinite ease-in-out;
+  pointer-events: none;
+  z-index: 20;
 }
 
-.giftbox .cover > div {
+@keyframes badgeFloat {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(-6px); }
+}
+
+/* Thân hộp quà mới */
+.gift-base {
   position: absolute;
-  width: 50px;
-  height: 50px;
-  left: 50%;
-  top: -50px;
-  transform: translateX(-50%);
-}
-
-.giftbox .cover > div:before, .giftbox .cover > div:after {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  content: "";
-  box-shadow: inset 0 0 0 15px #fdc56d;
-  border-radius: 30px;
-  transform-origin: 50% 100%;
-}
-
-.giftbox .cover > div:before {
-  transform: translateX(-45%) skewY(40deg);
-}
-
-.giftbox .cover > div:after {
-  transform: translateX(45%) skewY(-40deg);
-}
-
-.giftbox .box {
-  right: 5%;
-  left: 5%;
-  height: 80%;
   bottom: 0;
+  left: 5%;
+  width: 90%;
+  height: 72%;
+  background: linear-gradient(135deg, #ff2a7a 0%, #ff5252 50%, #d81159 100%);
+  border-radius: 14px;
+  box-shadow: 0 12px 28px rgba(216, 17, 89, 0.4), inset 0 2px 6px rgba(255, 255, 255, 0.4);
+  z-index: 3;
+  overflow: hidden;
 }
 
-.giftbox .box:before {
-  width: 50px;
-  height: 100%;
+/* Ruy băng vàng đan chéo thân hộp */
+.base-ribbon-v {
+  position: absolute;
+  top: 0;
   left: 50%;
   transform: translateX(-50%);
-  background: #fdc56d;
+  width: 22%;
+  height: 100%;
+  background: linear-gradient(90deg, #ffca28 0%, #fff176 50%, #ffb300 100%);
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
 }
 
-.giftbox .box:after {
+.base-ribbon-h {
+  position: absolute;
+  top: 40%;
+  left: 0;
   width: 100%;
-  height: 30px;
-  background: #aa598b8c;
+  height: 22%;
+  background: linear-gradient(180deg, #ffca28 0%, #fff176 50%, #ffb300 100%);
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
 }
 
-.step-1 .giftbox {
-  animation: wobble 0.5s linear infinite forwards;
+/* Nắp hộp quà mới */
+.gift-lid {
+  position: absolute;
+  top: 14%;
+  left: 0%;
+  width: 100%;
+  height: 26%;
+  background: linear-gradient(135deg, #ff4081 0%, #f50057 100%);
+  border-radius: 10px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25), inset 0 2px 6px rgba(255, 255, 255, 0.5);
+  z-index: 5;
+  transition: transform 0.5s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.5s ease;
 }
 
-.step-1 .cover {
-  animation: wobble 0.5s linear infinite 0.1s forwards;
+.lid-ribbon {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 22%;
+  height: 100%;
+  background: linear-gradient(90deg, #ffca28 0%, #fff176 50%, #ffb300 100%);
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
 }
 
-.step-1 .giftbox:after,
-.step-2 .giftbox:after,
-.step-3 .giftbox:after,
-.step-4 .giftbox:after {
-  opacity: 0 !important;
+/* Nơ vàng 3D trên nắp hộp */
+.gift-bow {
+  position: absolute;
+  top: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 50px;
+  height: 26px;
+  z-index: 6;
+}
+
+.bow-loop {
+  position: absolute;
+  top: 0;
+  width: 24px;
+  height: 24px;
+  border: 5px solid #ffd54f;
+  border-radius: 50% 50% 0 50%;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2), inset 0 0 6px rgba(255,255,255,0.6);
+}
+
+.bow-left {
+  left: 2px;
+  transform: rotate(-30deg);
+}
+
+.bow-right {
+  right: 2px;
+  transform: rotate(30deg) scaleX(-1);
+}
+
+.bow-center {
+  position: absolute;
+  top: 7px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 14px;
+  height: 14px;
+  background: radial-gradient(circle, #fff176 20%, #ffb300 80%);
+  border-radius: 50%;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+/* Hiệu ứng mở hộp quà mới */
+.step-1 .new-giftbox {
+  animation: giftWobble 0.5s linear infinite forwards;
+}
+
+@keyframes giftWobble {
+  0% { transform: translateX(-50%) rotate(0deg); }
+  25% { transform: translateX(-50%) rotate(-5deg); }
+  75% { transform: translateX(-50%) rotate(5deg); }
+  100% { transform: translateX(-50%) rotate(0deg); }
+}
+
+.step-1 .gift-badge,
+.step-2 .gift-badge,
+.step-3 .gift-badge,
+.step-4 .gift-badge {
   display: none !important;
+  opacity: 0 !important;
 }
 
-.step-2 .giftbox .cover {
-  animation: flyUp 0.4s ease-in forwards;
+.step-2 .gift-lid {
+  transform: translateY(-220px) rotate(-30deg) scale(0.9);
+  opacity: 0;
 }
 
-.step-2 .giftbox .box {
-  animation: flyDown 0.2s ease-in 0.05s forwards;
+.step-2 .gift-base {
+  transform: translateY(20px);
+  opacity: 0.7;
+  transition: transform 0.3s ease, opacity 0.3s ease;
 }
 
-.step-3 .giftbox,
-.step-4 .giftbox,
+.step-3 .new-giftbox,
+.step-4 .new-giftbox,
 .merrywrap.step-3,
 .merrywrap.step-4 {
   opacity: 0 !important;
   display: none !important;
   pointer-events: none !important;
-}
-
-@keyframes wobble {
-  25% { transform: rotate(4deg); }
-  75% { transform: rotate(-2deg); }
-}
-
-@keyframes flyUp {
-  75% { opacity: 1; }
-  100% { transform: translateY(-1000px) rotate(20deg); opacity: 0; }
-}
-
-@keyframes flyDown {
-  75% { opacity: 1; }
-  100% { transform: translateY(100%); opacity: 0; }
 }
 
 /* ========================================================
